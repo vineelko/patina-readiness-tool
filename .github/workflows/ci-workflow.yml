@@ -43,3 +43,27 @@ jobs:
         target/x86_64-unknown-linux-gnu/debug/dxe_readiness_validator
         target/aarch64-unknown-linux-gnu/debug/dxe_readiness_validator
     secrets: inherit
+
+  upload_binaries:
+    name: Upload Binaries
+    needs: ci_workflow
+    if: ${{ github.event_name != 'release' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts from ci_workflow
+        uses: actions/download-artifact@v5
+        with:
+          name: Linux-additional-artifacts
+          path: artifacts/
+
+      - name: Download artifacts from ci_workflow
+        uses: actions/download-artifact@v5
+        with:
+          name: Windows-additional-artifacts
+          path: artifacts/
+
+      - name: Re-upload artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: readiness-tool
+          path: artifacts/
