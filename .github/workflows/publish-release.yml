@@ -1,0 +1,63 @@
+# @file ci-workflow.yml
+#
+# A workflow that runs basic CI tests and Rust CI tests, triggered on a pull_request or push to
+# main.
+#
+##
+# Copyright (c) Microsoft Corporation.
+# SPDX-License-Identifier: Apache-2.0
+##
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build_binaries:
+    name: Run
+    uses: OpenDevicePartnership/patina-devops/.github/workflows/CiWorkflow.yml@v0.3.5
+    with:
+      build-tasks: build
+      run-cargo-vet: false
+      additional-artifacts: |
+        target/x86_64-unknown-uefi/debug/qemu_dxe_readiness_capture.efi
+        target/x86_64-unknown-uefi/debug/qemu_dxe_readiness_capture.pdb
+        target/aarch64-unknown-uefi/debug/qemu_dxe_readiness_capture.efi
+        target/aarch64-unknown-uefi/debug/qemu_dxe_readiness_capture.pdb
+        target/x86_64-pc-windows-msvc/debug/dxe_readiness_validator.exe
+        target/x86_64-pc-windows-msvc/debug/dxe_readiness_validator.pdb
+        target/aarch64-pc-windows-msvc/debug/dxe_readiness_validator.exe
+        target/aarch64-pc-windows-msvc/debug/dxe_readiness_validator.pdb
+        target/x86_64-unknown-linux-gnu/debug/dxe_readiness_validator
+        target/aarch64-unknown-linux-gnu/debug/dxe_readiness_validator
+    secrets: inherit
+
+  upload_binaries:
+    name: Upload Binaries
+    needs: build_binaries
+    if: ${{ github.event_name != 'release' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts from build_binaries
+        uses: actions/download-artifact@v5
+        with:
+          name: Linux-additional-artifacts
+          path: artifacts/
+
+      - name: Download artifacts from build_binaries
+        uses: actions/download-artifact@v5
+        with:
+          name: Windows-additional-artifacts
+          path: artifacts/
+
+      - name: Re-upload artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: readiness-tool
+          path: artifacts/
